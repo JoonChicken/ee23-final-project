@@ -1,0 +1,11 @@
+What we need right now:
+
+- Import and export files (input audio and impulse response audio)
+- A buffer to store the audio data temporarily while computations are going on
+- Reverb function implementation
+    - One arbitrary sized buffer to hold a chunk of input audio files
+    - One buffer to hold the impulse response data
+    - One buffer with the same length of the last where computations are layered
+      for each time step
+- Standardized impulse response processing
+   - Pyroomacoustics

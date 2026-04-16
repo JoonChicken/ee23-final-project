@@ -12,23 +12,19 @@ def stereo2mono(signal):
 
 def manual_convolve(inputsig, ir):
     input_len = len(inputsig)
-    print(input_len)
     ir_len = len(ir)
-    print(ir_len)
-    
-    ir_flip = ir[::-1] 
-    convolved = []
 
-    padded_input = np.pad(inputsig, (ir_len - 1, ir_len - 1), mode='constant')
-
-    for i in range (input_len + ir_len - 1):
-        window = padded_input[i : i + ir_len]
-        sum_curr = 0
-        for j in range(ir_len):
-            sum_curr += window[j] * ir_flip[j]
-        convolved.append(sum_curr)
+    # Convert to frequency domain
+    in_fft = np.fft.fft(inputsig, n=(input_len + ir_len - 1))
+    ir_fft = np.fft.fft(ir, n=(input_len + ir_len - 1))
     
-    return convolved
+    # Perform convolution
+    convolved_fft = in_fft * ir_fft
+    
+    # Convert back to time domain
+    result = np.fft.ifft(convolved_fft)
+    
+    return np.real(result)
 
 
 # Define input and output arguments

@@ -1,64 +1,77 @@
-import pydub 
 import numpy as np
 import matplotlib.pyplot as plt
 import collections
 import argparse
-import soundfile
+import soundfile as sf
 import impulseresponse
+    
+
+def stereo2mono(signal):
+    return np.mean(signal, axis=1)
 
 
+def manual_convolve(inputsig, ir):
+    input_len = len(inputsig)
+    print(input_len)
+    ir_len = len(ir)
+    print(ir_len)
+    
+    ir_flip = ir[::-1] 
+    convolved = []
 
-# found here: https://stackoverflow.com/questions/53633177/how-to-read-a-mp3-audio-file-into-a-numpy-array-save-a-numpy-array-to-mp3
-# converts an mp3 file to a numpy array
-filetypes = enumerate(["mp3", "wav"])
-
-def read(f, normalized=False):
-    filetype = f.split(".")[-1]
-    if (filetype == "mp3"):
-        a = pydub.AudioSegment.from_mp3(f)
-    elif (filetype == "wav"):
-        a = pydub.AudioSegment.from_wav(f)
-    else:
-        raise ValueError(f"Unsupported file type {filetype}")
-
-    y = np.array(a.get_array_of_samples())
-
-    if a.channels >= 2:
-        y = y.reshape((-1, 2))
-    if normalized:
-        y = np.float32(y) / 2**15
-
-    return a.frame_rate, y
+    for i in range (int((input_len + ir_len - 1)/5)):
+        sum_curr = 0
+        for j in range(ir_len):
+            # Check if the signal index is within valid bounds
+            signal_idx = i - (ir_len - 1) + j
+            if 0 <= signal_idx < input_len:
+                sum_curr += inputsig[signal_idx] * ir_flip[j]
+        convolved.append(sum_curr)
+    
+    return convolved
     
 
 # Define input and output arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--input", required=True)
-parser.add_argument("--impulse", required=True)
+parser.add_argument("--ir", required=True)
 parser.add_argument("--output", required=True)
 args = parser.parse_args()
 
 # Load data
-input_rate, input = read(args.input)
-ir_rate, ir = read(args.impulse)
-
-
-# plt.figure(figsize=(10, 4))
-plt.plot(input)
-plt.title("Input File Graph")
-plt.xlabel("Samples")
-plt.ylabel("Amplitude")
-plt.grid(True)
-plt.show()
+# Using the python soundfile library (docs found here: https://python-soundfile.readthedocs.io/en/0.13.1/)
+# import any audio file and output it to a 2D numpy array (stereo data even if input is mono)
+input, input_rate = sf.read(args.input, always_2d=True)
+ir, ir_rate = sf.read(args.ir, always_2d=True)
+input = stereo2mono(input)
+irsig = stereo2mono(ir)
 
 # Fill in following constants with data from files
-INPUT_BUF_LEN = 0
-IR_BUF_LEN = 0
+# INPUT_BUF_LEN = input.size()
+# IR_BUF_LEN = ir.size()
 
-inputBuffer = collections.deque(maxlen=INPUT_BUF_LEN)
-irBuffer = collections.deque(maxlen=IR_BUF_LEN)
-outputBuffer = collections.deque(maxlen=IR_BUF_LEN)
+### DEBUG!!!!!!!!!!!
+# print("Input file length is:", INPUT_BUF_LEN, "samples.")
+# print("Impulse file length is:", IR_BUF_LEN, "samples.")
 
+# Define buffers (only if doing real time convolve so we can run the convolve function on chunks)
+# inputBuffer = collections.deque(maxlen=INPUT_BUF_LEN)
+# irBuffer = collections.deque(maxlen=IR_BUF_LEN)
+# outputBuffer = collections.deque(maxlen=IR_BUF_LEN)
 
-# soundfile.write(args.output, [[our convolved audio]], input_rate)
-# print(f"Saved audio to {args.output}")
+# Output generation
+output = manual_convolve(input, irsig) # Output result to file
+sf.write(args.output, output, input_rate)
+print(f"Saved audio to {args.output}")
+
+for name, data in zip(
+    ["Input", "Impulse response", "Output"],
+    [input, ir, output]
+):
+    plt.figure(figsize=(10, 4))
+    plt.plot(data)
+    plt.title(f"{name} audio")
+    plt.xlabel("Samples")
+    plt.ylabel("Amplitude")
+    plt.grid(True)
+    plt.show()

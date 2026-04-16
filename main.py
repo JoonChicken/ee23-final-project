@@ -19,17 +19,17 @@ def manual_convolve(inputsig, ir):
     ir_flip = ir[::-1] 
     convolved = []
 
-    for i in range (int((input_len + ir_len - 1)/5)):
+    padded_input = np.pad(inputsig, (ir_len - 1, ir_len - 1), mode='constant')
+
+    for i in range (input_len + ir_len - 1):
+        window = padded_input[i : i + ir_len]
         sum_curr = 0
         for j in range(ir_len):
-            # Check if the signal index is within valid bounds
-            signal_idx = i - (ir_len - 1) + j
-            if 0 <= signal_idx < input_len:
-                sum_curr += inputsig[signal_idx] * ir_flip[j]
+            sum_curr += window[j] * ir_flip[j]
         convolved.append(sum_curr)
     
     return convolved
-    
+
 
 # Define input and output arguments
 parser = argparse.ArgumentParser()

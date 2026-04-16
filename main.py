@@ -14,18 +14,21 @@ filetypes = enumerate(["mp3", "wav"])
 
 def read(f, normalized=False):
     filetype = f.split(".")[-1]
-    a = None
     if (filetype == "mp3"):
         a = pydub.AudioSegment.from_mp3(f)
     elif (filetype == "wav"):
         a = pydub.AudioSegment.from_wav(f)
+    else:
+        raise ValueError(f"Unsupported file type {filetype}")
+
     y = np.array(a.get_array_of_samples())
-    if a.channels == 2:
+
+    if a.channels >= 2:
         y = y.reshape((-1, 2))
     if normalized:
-        return a.frame_rate, np.float32(y) / 2**15
-    else:
-        return a.frame_rate, y
+        y = np.float32(y) / 2**15
+
+    return a.frame_rate, y
     
 
 # Define input and output arguments

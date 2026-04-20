@@ -50,4 +50,4 @@ def get_rir(width, length, height):
     save_path = os.path.join(output_dir, 'impulse_response.png')
     plt.savefig(save_path)
 
-get_rir(5, 7, 12)
+# get_rir(5, 7, 12)
